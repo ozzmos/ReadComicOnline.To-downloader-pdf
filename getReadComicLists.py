@@ -46,7 +46,6 @@ def getchcom(url, scraper):
     souped_html = soup(page, "lxml")
 
     table = souped_html.find("table",{"class":"listing"})
-    print(souped_html)
     links = table.findAll("a")
 
     ch_links = []

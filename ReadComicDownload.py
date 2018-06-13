@@ -4,12 +4,10 @@
 import cfscrape
 import requests
 import comicV2, getReadComicLists, downloadComic
-import argparse, json, os
+import argparse, json, os, sys
 
 base_url = "http://readcomiconline.to/Comic"
 
-#Scraper instance
-scraper = getReadComicLists.create_scraper_new(requests)
 
 #For parsing arguments
 parser = argparse.ArgumentParser()
@@ -41,8 +39,10 @@ if args.chapter_link:
     comic_link = "/".join(chapter_link.split("/")[:5])
     comic_name = comic_link.split("/")[-1]
 
-if args.list_chapters and comic_link:
-
+def list_chapters_def(scraper):
+    """
+    Prints out the chapter names
+    """
     print("Wait for 10 secs to bypass cloudflare ddos protection ...")
     print("Listing all chapter names of " + comic_link)
 
@@ -53,45 +53,63 @@ if args.list_chapters and comic_link:
 
 outdir = os.path.join(outdir, comic_name)
 
-if download_all:
+def main(scraper):
 
-    #All chapters
-    #Usage -ml "URL" -a True
-    #OR -m "Name of comic" -a True
-    print("Wait for 10 secs to bypass cloudflare ddos protection ...")
-    print("Downloading all chapters from " + comic_link + " ...")
+    if download_all:
 
-    list_chapters, json_data = getReadComicLists.getchcom(comic_link, scraper)
+        #All chapters
+        #Usage -ml "URL" -a True
+        #OR -m "Name of comic" -a True
+        print("Wait for 10 secs to bypass cloudflare ddos protection ...")
+        print("Downloading all chapters from " + comic_link + " ...")
 
-    #Make a chapters.json file
-    downloadComic.write_json(json_data, outdir, 'chapters')
+        list_chapters, json_data = getReadComicLists.getchcom(comic_link, scraper)
 
-    downloadComic.download_chapters(json_data, outdir, scraper)
+        #Make a chapters.json file
+        downloadComic.write_json(json_data, outdir, 'chapters')
 
-elif comic_link and not chapter_link:
-    print("It currently supports downloading all chapters or only one chapter")
-    print("Use -cl <chapter_URL> to give a chapterlink and download that chapter")
-    print("Or -a to download every chapter")
+        downloadComic.download_chapters(json_data, outdir, scraper)
 
-elif chapter_link:
+    elif comic_link and not chapter_link:
+        print("It currently supports downloading all chapters or only one chapter")
+        print("Use -cl <chapter_URL> to give a chapterlink and download that chapter")
+        print("Or -a to download every chapter")
 
-    #Single chapter
-    #Usage -cl "" only
-    print("Wait for 10 secs to bypass cloudflare ddos protection ...")
-    print("Downloading only this chapter " + chapter_link + " ...")
+    elif chapter_link:
 
-    dec_imgs_list = comicV2.get_img_urls(chapter_link, scraper)
+        #Single chapter
+        #Usage -cl "" only
+        print("Wait for 10 secs to bypass cloudflare ddos protection ...")
+        print("Downloading only this chapter " + chapter_link + " ...")
 
-    details = comicV2.get_chapter_detalis(chapter_link, scraper)
+        dec_imgs_list = comicV2.get_img_urls(chapter_link, scraper)
 
-    downloadComic.write_json(
-            dec_imgs_list,
-            os.path.join(outdir, details['title']),
-            details['title'] + "_images"
-        )
+        details = comicV2.get_chapter_detalis(chapter_link, scraper)
 
-    downloadComic.download_images_and_create_pdf(
-            dec_imgs_list,
-            os.path.join(outdir, details['title']),
-            details['title']
-        )
+        downloadComic.write_json(
+                dec_imgs_list,
+                os.path.join(outdir, details['title']),
+                details['title'] + "_images"
+            )
+
+        downloadComic.download_images_and_create_pdf(
+                dec_imgs_list,
+                os.path.join(outdir, details['title']),
+                details['title']
+            )
+
+
+# If te number of args given is > 1 run the thing
+
+if len(sys.argv) > 1:
+        #Scraper instance
+    scraper = getReadComicLists.create_scraper_new(requests)
+
+    main(scraper)
+else:
+    print("Ya need to provide args")
+    print("try ./ReadComicDownload.py -h for help")
+
+
+if args.list_chapters and comic_link:
+    list_chapters_def(scraper)
